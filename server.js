@@ -5,13 +5,17 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { engine as exphbs } from 'express-handlebars';
 import { Server }  from 'socket.io';
 import { createServer } from 'http';
-import { Mongo } from './src/db/mongodb/mongo.js';
+import * as db from './src/db/mongodb/mongo.js';
+import { matchPassword } from './src/db/mongodb/sessions.js';
+import UserModel from './src/db/mongodb/sessions.js';
 import { ProductsOptions } from './src/db/sqlite3/connection/connection.js';
 import ProductsClienteSQL from './src/db/sqlite3/classes/ProductsClass.js';
 
 const app = express();
 
-const users = [];
+db.connect();
+
+const dbClass = new db.Mongo;
 
 //----- DIRNAME -----//
 
@@ -23,30 +27,29 @@ const __dirname = path.dirname(__filename);
 
 //----- PASSPORT -----//
 
-passport.use('register', new LocalStrategy({ passReqToCallback: true }, (req, username, password, done) => {
+passport.use('register', new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
     const { email } = req.body;
 
-    const user = users.find(u => u.username == username);
+    const user = await UserModel.findOne({ "username": username });
+
     if (user) {
         return done(null, false, 'That user has already register')
     }
 
-    const newUser = {username: username, password: password, email: email};
-    users.push(newUser);
+    const newUser = await UserModel.create({username,password,email})
 
     done(null, newUser);
 }))
 
-passport.use('login', new LocalStrategy( (username, password, done) => {
-    const user = users.find(u => u.username == username);
+passport.use('login', new LocalStrategy( async (username, password, done) => {
+    const user = await UserModel.findOne({ "username": username });
 
     if (!user) {
         return done(null, false, 'This user not exist')
     }
 
-    if (user.password !== password) {
-        return done(null, false, 'Incorrect password')
-    }
+    const isMatch = await matchPassword(password, user.password);
+    if (!isMatch) return done(null, false, 'Incorrect password');
 
     done(null, user)
 }))
@@ -56,7 +59,7 @@ passport.serializeUser((user, done) => {
 })
 
 passport.deserializeUser(async (username, done) => {
-    const user = users.find(u => u.username == username);
+    const user = UserModel.findOne({ "username": username });
 
     done(null, user)
 })
@@ -124,14 +127,14 @@ io.on('connection', socket => {
             io.sockets.emit('products', products);
         })
 
-        new Mongo().getMsg()
+        dbClass.getMsg()
         .then(d => {
             socket.emit('messages', d)
             socket.on('update-chat', async data => {
             
                 await new Mongo().addMsgMongo(data)
 
-                new Mongo().getMsg()
+                dbClass.getMsg()
                 .then(data2 => {
                     io.sockets.emit('messages', data2)
                 })

@@ -7,72 +7,37 @@ export class Mongo {
     async getMsg () {
         let data;
 
-        await mongoose.connect(URL, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-
         data = await models.messages.find({}, {_id:0, __v:0});
 
         const stringifyData = JSON.stringify(data);
         const parsedData = JSON.parse(stringifyData);
 
-        mongoose.disconnect();
-
         return parsedData;
     }
 
     async addMsgMongo (mensaje) {
-        await mongoose.connect(URL, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
 
         const newuser = new models.messages(mensaje);
         await newuser.save();
 
-        mongoose.disconnect();
     }
 }
 
-// export class MongoSessions {
-//     async registerSession (username, password, email) {
-//         await mongoose.connect(URL, {
-//             useNewUrlParser: true,
-//             useUnifiedTopology: true
-//         });
+mongoose.Promise = global.Promise;
 
-//         const data = {
-//             username: username,
-//             password: password,
-//             email: email
-//         };
+export const connect = async () => {
+    mongoose.connect(URL, { useNewUrlParser: true, useUnifiedTopology: true });
 
-//         const newsession = new models.sessions({
-//             username: username,
-//             password: password,
-//             email: email
-//         });
-//         await newsession.save();
+    const db = mongoose.connection;
+    db.on("error", () => {
+        console.log("could not connect");
+    });
+    db.once("open", () => {
+        console.log("> Successfully connected to database");
+    });
+};
 
-//         mongoose.disconnect();
-
-//         return data;
-//     }
-
-//     async getSessionByUsername (username) {
-//         let session;
-
-//         await mongoose.connect(URL, {
-//             useNewUrlParser: true,
-//             useUnifiedTopology: true
-//         });
-
-//         session = await models.sessions.findOne({username: username}, {__v: 0, _id: 0});
-
-//         mongoose.disconnect()
-
-//         return session;
-//     }
-// }
+export const disconnect = () => {
+    mongoose.disconnect()
+};
 

@@ -17,14 +17,4 @@ const messagesSchema = new mongoose.Schema({
 
 export const messages = mongoose.model(messagesCollection, messagesSchema);
 
-const sessionsCollection = 'sessions';
-
-const sessionsSchema = new mongoose.Schema({
-    username: String,
-    email: String,
-    password: String
-})
-
-export const sessions = mongoose.model(sessionsCollection, sessionsSchema);
-
 
