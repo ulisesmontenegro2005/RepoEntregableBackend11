@@ -16,8 +16,8 @@ const spanContador = document.getElementById('span-contador');
 async function inicio () {
     getData()
     .then(data => {
-        spanName.innerHTML = data.d.username
-        spanEmail.innerHTML = data.d.email
+        spanName.innerHTML = data.d.user.username
+        spanEmail.innerHTML = data.d.user.email
         spanContador.innerHTML = data.d.contador
     })
     .catch(err => {
@@ -97,7 +97,7 @@ async function logout() {
     .then(data => {
         Swal.fire({
             icon: 'success',
-            title: `Te desloguaste correctamente ${data.d.username}`,
+            title: `Te desloguaste correctamente ${data.d.user.username}`,
             showConfirmButton: false,
             timer: 2000
         });

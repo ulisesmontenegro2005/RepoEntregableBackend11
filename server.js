@@ -36,13 +36,14 @@ passport.use('register', new LocalStrategy({ passReqToCallback: true }, async (r
         return done(null, false, 'That user has already register')
     }
 
+    console.log(req.session);
     const newUser = await UserModel.create({username,password,email})
 
     done(null, newUser);
 }))
 
 passport.use('login', new LocalStrategy( async (username, password, done) => {
-    const user = await UserModel.findOne({ "username": username });
+    let user = await UserModel.findOne({ "username": username })
 
     if (!user) {
         return done(null, false, 'This user not exist')
@@ -132,7 +133,7 @@ io.on('connection', socket => {
             socket.emit('messages', d)
             socket.on('update-chat', async data => {
             
-                await new Mongo().addMsgMongo(data)
+                dbClass.addMsgMongo(data)
 
                 dbClass.getMsg()
                 .then(data2 => {
@@ -183,23 +184,27 @@ app.get('/failregister', (req, res) => {
 })
 
 app.get('/datos', requireAuthentication, (req, res) => {
-    if (!req.user.contador) {
-        req.user.contador = 0
+    if (!req.session.contador) {
+        req.session.contador = 0
     }
 
-    req.user.contador++
+    req.session.contador++
 
     res.sendFile(__dirname + '/src/datos.html')
 })
 
 app.get('/logout', (req, res) => {
     req.session.destroy()
-
+    
     res.redirect('/')
 })
 
 app.get('/get-data', async (req, res) => {
-    res.send({ username: req.user.username, email: req.user.email, contador: req.user.contador })
+    const username = req.session.passport.user;
+
+    const user = await UserModel.findOne({'username': username}, {__v: 0, _id: 0, password: 0});
+
+    res.send({user, contador: req.session.contador})
 })
 
 //----- LISTENING -----//

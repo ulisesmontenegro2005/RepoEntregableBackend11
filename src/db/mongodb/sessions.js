@@ -20,17 +20,13 @@ const UserSchema = new Schema ({
 
 UserSchema.pre('save', async function(next) {
     try {
-        const saltRounds = 10
+        let hash;
 
-        let user = this;
+        let salt = bcrypt.genSaltSync(10);
 
-        await bcrypt.genSalt(saltRounds, function(err, salt) {
-            bcrypt.hash(user.password, salt, function(err, hash) {
-                user.password = hash;
-            });
-        });
+        hash = bcrypt.hashSync(this.password, salt);
 
-        this.password = user.password
+        this.password = hash
 
         next()
     } catch (err) {
@@ -40,9 +36,8 @@ UserSchema.pre('save', async function(next) {
 
 export const matchPassword = async (password, sessionPassword) => {
     try {
-        if (password == sessionPassword) {
-            return true
-        }
+        return await bcrypt.compare(password, sessionPassword);
+
     } catch (err) {
         console.log(err);
     }
